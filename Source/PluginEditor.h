@@ -13,11 +13,18 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
 
+    // Lightweight test seams (avoid brittle child-walking in unit tests).
+    const juce::Slider& debugThresholdSlider() const noexcept { return threshold; }
+    const juce::Slider& debugClipDriveSlider() const noexcept { return clipDrive; }
+    const juce::Slider& debugClipStyleSlider() const noexcept { return clipStyle; }
+
 private:
     void timerCallback() override;
-    void updateClipUI();
 
     ThresholdCrushAudioProcessor& audioProcessor;
+
+    std::atomic<float>* clipEnabledParam = nullptr; // read-only on message thread for visuals
+    juce::Rectangle<int> clipRowArea;
 
     juce::Slider threshold;
     juce::Slider attack;
@@ -62,8 +69,6 @@ private:
     std::unique_ptr<Attachment> clipStyleAttachment;
 
     std::unique_ptr<Attachment> mixAttachment;
-
-    std::atomic<float>* clipEnabledParam = nullptr;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ThresholdCrushAudioProcessorEditor)
 };

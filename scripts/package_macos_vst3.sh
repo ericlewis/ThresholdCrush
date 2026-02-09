@@ -8,10 +8,12 @@ BUILD="$ROOT_DIR/build"
 PKG_VERSION="${1:-${PKG_VERSION:-}}"
 if [[ -z "${PKG_VERSION}" ]]; then
   # Best-effort fallback: parse from CMakeLists.txt (project(... VERSION X.Y.Z)).
-  PKG_VERSION="$(perl -ne 'print $1 and exit if /project\\(ThresholdCrush\\s+VERSION\\s+([0-9]+\\.[0-9]+\\.[0-9]+)\\)/' \"$ROOT_DIR/CMakeLists.txt\" 2>/dev/null || true)"
+  PKG_VERSION="$(perl -ne 'print $1 and exit if /project\(ThresholdCrush\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)\)/' "$ROOT_DIR/CMakeLists.txt" 2>/dev/null || true)"
 fi
 if [[ -z "${PKG_VERSION}" ]]; then
-  echo "Missing version. Pass as arg: package_macos_vst3.sh 0.2.0 (or set PKG_VERSION env)." >&2
+  echo "Missing version. Fix by:" >&2
+  echo "1) Ensure CMakeLists.txt has: project(ThresholdCrush VERSION X.Y.Z)" >&2
+  echo "2) Or run: bash scripts/package_macos_vst3.sh X.Y.Z" >&2
   exit 1
 fi
 
@@ -19,8 +21,13 @@ VST3_SRC="$BUILD/ThresholdCrush_artefacts/VST3/ThresholdCrush.vst3"
 
 if [[ ! -d "$VST3_SRC" ]]; then
   echo "Missing VST3 at: $VST3_SRC" >&2
-  echo "Build first: cmake --build $BUILD --config Release" >&2
-  exit 1
+  echo "Building Release..." >&2
+  cmake -S "$ROOT_DIR" -B "$BUILD" -DTHRESHOLDCRUSH_BUILD_TESTS=ON
+  cmake --build "$BUILD" --config Release -j 8
+  if [[ ! -d "$VST3_SRC" ]]; then
+    echo "Build completed, but VST3 is still missing at: $VST3_SRC" >&2
+    exit 1
+  fi
 fi
 
 rm -rf "$DIST"

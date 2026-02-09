@@ -100,7 +100,6 @@ ThresholdCrushAudioProcessorEditor::ThresholdCrushAudioProcessorEditor (Threshol
     clipEnabledParam = audioProcessor.apvts.getRawParameterValue ("clip_enabled");
 
     startTimerHz (15);
-    updateClipUI();
 
     setSize (560, 500);
 }
@@ -124,6 +123,36 @@ void ThresholdCrushAudioProcessorEditor::paint (juce::Graphics& g)
     }
 
     auto header = getLocalBounds().removeFromTop (28);
+
+    // Clip row state (visual only): indicate bypass/active without disabling Drive/Style knobs.
+    if (! clipRowArea.isEmpty())
+    {
+        const bool clipOn = (clipEnabledParam != nullptr && clipEnabledParam->load() > 0.5f);
+        auto r = clipRowArea.toFloat().reduced (4.0f);
+
+        const auto accent = juce::Colour::fromRGB (255, 120, 90);
+        const float pulse = 0.5f + 0.5f * std::sin ((float) juce::Time::getMillisecondCounterHiRes() * 0.0045f);
+
+        g.setColour (accent.withAlpha (clipOn ? (0.08f + 0.03f * pulse) : 0.025f));
+        g.fillRoundedRectangle (r, 14.0f);
+
+        g.setColour (juce::Colours::white.withAlpha (clipOn ? 0.18f : 0.10f));
+        g.drawRoundedRectangle (r, 14.0f, 1.0f);
+
+        // Small badge near the toggle.
+        auto b = clipEnabled.getBounds().toFloat();
+        auto badge = juce::Rectangle<float> (b.getX(), b.getY() - 18.0f, 74.0f, 14.0f);
+
+        g.setColour (juce::Colours::black.withAlpha (0.35f));
+        g.fillRoundedRectangle (badge, 7.0f);
+
+        g.setColour ((clipOn ? accent : juce::Colours::white).withAlpha (clipOn ? 0.85f : 0.35f));
+        g.setFont (juce::Font (juce::FontOptions (10.0f)));
+        g.drawFittedText (clipOn ? "CLIP ON" : "BYPASS",
+                          badge.toNearestInt(),
+                          juce::Justification::centred,
+                          1);
+    }
 
     g.setColour (juce::Colours::white.withAlpha (0.92f));
     g.setFont (juce::Font (juce::FontOptions (16.0f, juce::Font::bold)));
@@ -188,6 +217,7 @@ void ThresholdCrushAudioProcessorEditor::resized()
     auto row1 = area.removeFromTop (rowHeight);
     auto row2 = area.removeFromTop (rowHeight);
     auto row3 = area.removeFromTop (rowHeight);
+    clipRowArea = row3;
 
     auto layout3 = [](juce::Rectangle<int> r,
                       juce::Label& l1, juce::Slider& s1,
@@ -234,16 +264,5 @@ void ThresholdCrushAudioProcessorEditor::resized()
 
 void ThresholdCrushAudioProcessorEditor::timerCallback()
 {
-    updateClipUI();
     repaint();
-}
-
-void ThresholdCrushAudioProcessorEditor::updateClipUI()
-{
-    const bool enabled = (clipEnabledParam != nullptr && clipEnabledParam->load() > 0.5f);
-
-    clipDrive.setEnabled (enabled);
-    clipStyle.setEnabled (enabled);
-    clipDriveLabel.setEnabled (enabled);
-    clipStyleLabel.setEnabled (enabled);
 }

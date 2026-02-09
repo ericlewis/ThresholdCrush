@@ -69,19 +69,27 @@ if (THRESHOLDCRUSH_BUILD_TESTS)
   target_sources(ThresholdCrushTests
     PRIVATE
       Source/ThresholdCrushDSP.h
+      Source/PluginProcessor.cpp
+      Source/PluginProcessor.h
+      Source/PluginEditor.cpp
+      Source/PluginEditor.h
       Tests/ThresholdCrushDSPTests.cpp
+      Tests/ThresholdCrushLayoutTests.cpp
   )
 
   target_compile_definitions(ThresholdCrushTests
     PRIVATE
       JUCE_WEB_BROWSER=0
       JUCE_USE_CURL=0
+      JucePlugin_Name="ThresholdCrush"
   )
 
   target_link_libraries(ThresholdCrushTests
     PRIVATE
       juce::juce_core
       juce::juce_audio_basics
+      juce::juce_gui_basics
+      juce::juce_audio_processors
       juce::juce_recommended_config_flags
       juce::juce_recommended_lto_flags
       juce::juce_recommended_warning_flags

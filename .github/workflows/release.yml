@@ -4,7 +4,17 @@ name: Build + Release (macOS VST3)
   push:
     tags:
       - 'v*.*.*'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g. 0.2.0). If blank, parsed from CMakeLists.txt."
+        required: false
+        type: string
+      prerelease:
+        description: "Mark GitHub Release as prerelease"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -16,6 +26,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Compute version
         id: ver
@@ -26,11 +38,36 @@ jobs:
             tag="${GITHUB_REF_NAME}"
             version="${tag#v}"
           else
-            # Manual runs: best-effort parse from CMakeLists
-            version="$(perl -ne 'print $1 and exit if /project\(ThresholdCrush\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)\)/' CMakeLists.txt)"
+            version="${{ inputs.version }}"
+            if [[ -z "${version}" ]]; then
+              # Manual runs: best-effort parse from CMakeLists
+              version="$(perl -ne 'print $1 and exit if /project\(ThresholdCrush\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)\)/' CMakeLists.txt)"
+            fi
+            tag="v${version}"
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "Version: $version"
+          echo "Tag: $tag"
+
+      - name: Create/push tag (workflow_dispatch)
+        if: github.ref_type != 'tag'
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.ver.outputs.tag }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "Tag already exists locally: ${tag}"
+          else
+            git tag "${tag}"
+          fi
+
+          # Push tag to origin so the GitHub Release has a real ref.
+          git push origin "${tag}"
 
       - name: Configure (CMake)
         shell: bash
@@ -67,9 +104,10 @@ jobs:
             dist/*.dmg
 
       - name: Create GitHub Release + upload assets
-        if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          prerelease: ${{ inputs.prerelease }}
           files: |
             dist/*.pkg
             dist/*.zip

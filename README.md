@@ -28,7 +28,7 @@ Output
 
 ```sh
 cmake -S . -B build
-cmake --build build --config Release
+cmake --build build --config Release -j 8
 ```
 
 VST3 output is under `build/ThresholdCrush_artefacts/VST3/`.
@@ -37,10 +37,18 @@ VST3 output is under `build/ThresholdCrush_artefacts/VST3/`.
 
 ```sh
 cmake -S . -B build
-cmake --build build --config Debug
+cmake --build build --config Debug -j 8
 ./build/ThresholdCrushTests_artefacts/ThresholdCrushTests
 ```
 
 ## Install / DAWs
 
 See `INSTALL.md`.
+
+## Package (macOS)
+
+```sh
+bash scripts/package_macos_vst3.sh
+```
+
+The packager auto-detects the version from `CMakeLists.txt` and will build Release if needed.

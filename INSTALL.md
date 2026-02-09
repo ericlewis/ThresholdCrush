@@ -60,6 +60,10 @@ cd /Users/ericlewis/Developer/JayJay300
 bash scripts/package_macos_vst3.sh
 ```
 
+Notes:
+- The script auto-detects the version from `CMakeLists.txt` and will build Release if needed.
+- You can also override: `bash scripts/package_macos_vst3.sh 0.2.0`
+
 ## DAW Rescan Instructions (macOS)
 
 All of these DAWs will see the plugin once it’s in a VST3 folder above, but each has its own rescan UI.
