@@ -14,7 +14,7 @@ bash "$ROOT_DIR/scripts/package_macos.sh" "${PKG_VERSION:-}"
 # We repackage from the combined dist directory to VST3-only names.
 VERSION="${PKG_VERSION}"
 if [[ -z "${VERSION}" ]]; then
-  VERSION="$(perl -ne 'print $1 and exit if /project\(ThresholdCrush\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)\)/' "$ROOT_DIR/CMakeLists.txt" 2>/dev/null || true)"
+  VERSION="$(perl -ne 'print $1 and exit if /set\(THRESHOLDCRUSH_VERSION\s+\"?([0-9]+\.[0-9]+\.[0-9]+)\"?/' "$ROOT_DIR/CMakeLists.txt" 2>/dev/null || true)"
 fi
 if [[ -z "${VERSION}" ]]; then
   echo "Could not determine version for VST3-only compatibility packaging." >&2

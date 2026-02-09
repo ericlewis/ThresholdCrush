@@ -27,7 +27,6 @@ ThresholdCrushAudioProcessorEditor::ThresholdCrushAudioProcessorEditor (Threshol
 {
     // Detector
     setupKnob (threshold);
-    threshold.setSkewFactorFromMidPoint (-18.0);
 
     setupKnob (attack);
     setupKnob (release);
@@ -86,6 +85,9 @@ ThresholdCrushAudioProcessorEditor::ThresholdCrushAudioProcessorEditor (Threshol
     thresholdAttachment = std::make_unique<Attachment> (audioProcessor.apvts, "threshold_db", threshold);
     attackAttachment = std::make_unique<Attachment> (audioProcessor.apvts, "attack_ms", attack);
     releaseAttachment = std::make_unique<Attachment> (audioProcessor.apvts, "release_ms", release);
+
+    // Apply skew after APVTS attachment has established a sane range.
+    threshold.setSkewFactorFromMidPoint (-18.0);
 
     crushRangeAttachment = std::make_unique<Attachment> (audioProcessor.apvts, "crush_range_db", crushRange);
     minBitDepthAttachment = std::make_unique<Attachment> (audioProcessor.apvts, "min_bit_depth", minBitDepth);

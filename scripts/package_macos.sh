@@ -43,7 +43,7 @@ if [[ ! -d "$VST3_SRC" || ! -d "$AU_SRC" ]]; then need_release_build=1; fi
 
 if [[ "${need_release_build}" -eq 1 ]]; then
   echo "Preparing Release build..." >&2
-  cmake -S "$ROOT_DIR" -B "$BUILD" -DTHRESHOLDCRUSH_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+  cmake -S "$ROOT_DIR" -B "$BUILD" -DTHRESHOLDCRUSH_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
   cmake --build "$BUILD" --config Release -j 8
 fi
 
@@ -75,7 +75,7 @@ codesign --force --deep --sign - "$AU_DST/ThresholdCrush.component" || true
 VST3_STAGED="$VST3_DST/ThresholdCrush.vst3"
 AU_STAGED="$AU_DST/ThresholdCrush.component"
 
-PKG_ID="com.jayjay.thresholdcrush.auv2vst3"
+PKG_ID="com.ericlewis.thresholdcrush.auv2vst3"
 PKG_OUT="$DIST/ThresholdCrush-$PKG_VERSION-macOS-AU+VST3.pkg"
 
 pkgbuild \

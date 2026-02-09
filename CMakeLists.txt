@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(ThresholdCrush VERSION 0.2.0)
+set(THRESHOLDCRUSH_VERSION "0.2.0" CACHE STRING "ThresholdCrush version")
+project(ThresholdCrush VERSION ${THRESHOLDCRUSH_VERSION})
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

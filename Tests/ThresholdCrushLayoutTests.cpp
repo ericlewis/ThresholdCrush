@@ -12,6 +12,8 @@ struct ThresholdCrushLayoutUnitTest final : public juce::UnitTest
     {
         beginTest ("Clip knobs are same size as other knobs; no overlaps; within bounds");
 
+        juce::ScopedJuceInitialiser_GUI gui;
+
         ThresholdCrushAudioProcessor proc;
         std::unique_ptr<juce::AudioProcessorEditor> editorBase (proc.createEditor());
         auto* editor = dynamic_cast<ThresholdCrushAudioProcessorEditor*> (editorBase.get());
@@ -42,6 +44,9 @@ struct ThresholdCrushLayoutUnitTest final : public juce::UnitTest
 
         // Basic non-overlap sanity for the clip knobs.
         expect (! clipDriveKnob.getBounds().intersects (clipStyleKnob.getBounds()));
+
+        // Ensure editor is destroyed before JUCE GUI teardown (debug leak detector).
+        editorBase.reset();
     }
 };
 

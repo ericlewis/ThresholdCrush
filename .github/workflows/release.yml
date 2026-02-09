@@ -5,6 +5,8 @@ name: Build + Release (macOS AU+VST3)
     tags:
       - 'v*.*.*'
       - '*.*.*'
+    branches:
+      - main
   release:
     types: [published]
   workflow_dispatch:
@@ -24,6 +26,7 @@ permissions:
 
 jobs:
   build-macos:
+    if: ${{ !(github.event_name == 'push' && github.ref_type == 'tag' && github.actor == 'github-actions[bot]') }}
     runs-on: macos-latest
 
     steps:
@@ -38,6 +41,41 @@ jobs:
         run: |
           set -euo pipefail
           event="${GITHUB_EVENT_NAME}"
+          ref="${GITHUB_REF}"
+          short_sha="$(git rev-parse --short HEAD)"
+
+          base_version="$(perl -ne 'print $1 and exit if /set\\(THRESHOLDCRUSH_VERSION\\s+\"?([0-9]+\\.[0-9]+\\.[0-9]+)\"?/' CMakeLists.txt)"
+          if [[ -z "${base_version}" ]]; then
+            echo "Could not parse THRESHOLDCRUSH_VERSION from CMakeLists.txt" >&2
+            exit 1
+          fi
+
+          auto_bump_next_patch() {
+            local base="${1}"
+            local base_major base_minor base_patch
+            IFS='.' read -r base_major base_minor base_patch <<< "${base}"
+
+            local max_patch=-1
+            local t
+            while read -r t; do
+              if [[ "${t}" =~ ^v?([0-9]+)\\.([0-9]+)\\.([0-9]+)$ ]]; then
+                local maj="${BASH_REMATCH[1]}"
+                local min="${BASH_REMATCH[2]}"
+                local pat="${BASH_REMATCH[3]}"
+                if [[ "${maj}" == "${base_major}" && "${min}" == "${base_minor}" ]]; then
+                  if (( pat > max_patch )); then max_patch="${pat}"; fi
+                fi
+              fi
+            done < <(git tag --list)
+
+            local next_patch="${base_patch}"
+            if (( max_patch >= 0 )); then
+              local candidate=$((max_patch + 1))
+              if (( candidate > next_patch )); then next_patch="${candidate}"; fi
+            fi
+
+            echo "${base_major}.${base_minor}.${next_patch}"
+          }
 
           if [[ "${event}" == "release" ]]; then
             tag="${{ github.event.release.tag_name }}"
@@ -47,8 +85,11 @@ jobs:
             version="${{ inputs.version }}"
             version="${version#v}"
             if [[ -z "${version}" ]]; then
-              # Manual runs: best-effort parse from CMakeLists
-              version="$(perl -ne 'print $1 and exit if /project\(ThresholdCrush\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)\)/' CMakeLists.txt)"
+              if [[ "${event}" == "push" && "${ref}" == "refs/heads/main" ]]; then
+                version="$(auto_bump_next_patch "${base_version}")"
+              else
+                version="${base_version}"
+              fi
             fi
 
             tag="v${version}"
@@ -57,33 +98,45 @@ jobs:
           version="${tag#v}"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$short_sha" >> "$GITHUB_OUTPUT"
           echo "Version: $version"
           echo "Tag: $tag"
 
       - name: Create/push tag (workflow_dispatch)
-        if: github.event_name == 'workflow_dispatch'
+        id: tagger
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         shell: bash
         run: |
           set -euo pipefail
           tag="${{ steps.ver.outputs.tag }}"
+          short_sha="${{ steps.ver.outputs.short_sha }}"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
-            echo "Tag already exists locally: ${tag}"
+            existing_sha="$(git rev-list -n 1 "${tag}")"
+            head_sha="$(git rev-parse HEAD)"
+            if [[ "${existing_sha}" == "${head_sha}" ]]; then
+              echo "Tag already exists on this commit: ${tag}"
+            else
+              tag="v${{ steps.ver.outputs.version }}-build.${short_sha}"
+              echo "Tag exists on different commit; using ${tag}"
+              git tag "${tag}"
+            fi
           else
             git tag "${tag}"
           fi
 
           # Push tag to origin so the GitHub Release has a real ref.
           git push origin "${tag}"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
 
       - name: Configure (CMake)
         shell: bash
         run: |
           set -euo pipefail
-          cmake -S . -B build -DTHRESHOLDCRUSH_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          cmake -S . -B build -DTHRESHOLDCRUSH_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DTHRESHOLDCRUSH_VERSION="${{ steps.ver.outputs.version }}"
 
       - name: Build (Release)
         shell: bash
@@ -135,7 +188,8 @@ jobs:
       - name: Create GitHub Release + upload assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.ver.outputs.tag }}
+          # If we had to mint a collision-avoiding tag, use that for the release.
+          tag_name: ${{ steps.tagger.outputs.tag || steps.ver.outputs.tag }}
           prerelease: ${{ (github.event_name == 'workflow_dispatch' && inputs.prerelease) || (github.event_name == 'release' && github.event.release.prerelease) || false }}
           fail_on_unmatched_files: true
           files: |

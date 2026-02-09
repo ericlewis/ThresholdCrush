@@ -1,8 +1,16 @@
 # Releasing ThresholdCrush
 
+## Automatic: push to main
+
+Pushing to `main` runs **Build + Release (macOS AU+VST3)** and publishes a Release automatically.
+
+Versioning:
+- `CMakeLists.txt` defines the base version via `THRESHOLDCRUSH_VERSION` (use this to bump major/minor).
+- On `main` pushes, the workflow auto-tags the **next patch** version for that major/minor (e.g. `0.2.0` -> `0.2.1`), then builds/packages using that version.
+
 ## Recommended: tag-based release
 
-1. Bump `project(ThresholdCrush VERSION X.Y.Z)` in `CMakeLists.txt` if needed.
+1. Bump `THRESHOLDCRUSH_VERSION` in `CMakeLists.txt` if needed.
 2. Commit.
 3. Tag and push:
    ```sh

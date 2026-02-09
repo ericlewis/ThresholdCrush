@@ -1,7 +1,10 @@
 # ThresholdCrush (AU + VST3)
 
-A macOS audio effect that stays clean under a threshold, then progressively bitcrushes the signal as it exceeds the threshold (like clipping, but with bit-depth reduction).
+<p align="center">
+  <img src="Resources/README/bitcrush-detail.png" width="720" alt="ThresholdCrush hero (bitcrush detail)">
+</p>
 
+A macOS audio effect that stays clean under a threshold, then progressively bitcrushes the signal as it exceeds the threshold (like clipping, but with bit-depth reduction).
 
 ## Signal Flow
 ```text
@@ -25,8 +28,6 @@ flowchart LR
   H --> I
   I --> J["Output L/R"]
 ```
-
-![Bitcrush detail](Resources/README/bitcrush-detail.png)
 
 ## Controls
 
