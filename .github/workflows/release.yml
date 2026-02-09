@@ -1,0 +1,77 @@
+name: Build + Release (macOS VST3)
+
+"on":
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute version
+        id: ver
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            tag="${GITHUB_REF_NAME}"
+            version="${tag#v}"
+          else
+            # Manual runs: best-effort parse from CMakeLists
+            version="$(perl -ne 'print $1 and exit if /project\(ThresholdCrush\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)\)/' CMakeLists.txt)"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Version: $version"
+
+      - name: Configure (CMake)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S . -B build -DTHRESHOLDCRUSH_BUILD_TESTS=ON
+
+      - name: Build (Release)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --build build --config Release -j 8
+
+      - name: Build + Test (Debug)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --build build --config Debug -j 8
+          ./build/ThresholdCrushTests_artefacts/ThresholdCrushTests
+
+      - name: Package installers (pkg/zip/dmg)
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/package_macos_vst3.sh "${{ steps.ver.outputs.version }}"
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThresholdCrush-macOS-VST3-${{ steps.ver.outputs.version }}
+          path: |
+            dist/*.pkg
+            dist/*.zip
+            dist/*.dmg
+
+      - name: Create GitHub Release + upload assets
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.pkg
+            dist/*.zip
+            dist/*.dmg
+          generate_release_notes: true

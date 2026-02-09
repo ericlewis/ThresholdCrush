@@ -1,0 +1,32 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode / SwiftPM
+DerivedData/
+*.xcuserstate
+*.xcuserdata/
+*.xccheckout
+*.xcscmblueprint
+*.xcodeproj/*/xcuserdata/
+.swiftpm/
+.build/
+
+# Editors
+.vscode/
+.idea/
+
+# CMake / build outputs
+**/build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# Plugin packaging outputs
+**/dist/
+
+# Misc
+*.log
