@@ -1,9 +1,12 @@
-name: Build + Release (macOS VST3)
+name: Build + Release (macOS AU+VST3)
 
 "on":
   push:
     tags:
       - 'v*.*.*'
+      - '*.*.*'
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       version:
@@ -34,24 +37,31 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+          event="${GITHUB_EVENT_NAME}"
+
+          if [[ "${event}" == "release" ]]; then
+            tag="${{ github.event.release.tag_name }}"
+          elif [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             tag="${GITHUB_REF_NAME}"
-            version="${tag#v}"
           else
             version="${{ inputs.version }}"
+            version="${version#v}"
             if [[ -z "${version}" ]]; then
               # Manual runs: best-effort parse from CMakeLists
               version="$(perl -ne 'print $1 and exit if /project\(ThresholdCrush\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)\)/' CMakeLists.txt)"
             fi
+
             tag="v${version}"
           fi
+
+          version="${tag#v}"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "Version: $version"
           echo "Tag: $tag"
 
       - name: Create/push tag (workflow_dispatch)
-        if: github.ref_type != 'tag'
+        if: github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
           set -euo pipefail
@@ -73,31 +83,50 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cmake -S . -B build -DTHRESHOLDCRUSH_BUILD_TESTS=ON
+          cmake -S . -B build -DTHRESHOLDCRUSH_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
 
       - name: Build (Release)
         shell: bash
         run: |
           set -euo pipefail
-          cmake --build build --config Release -j 8
+          cmake --build build -j 8
 
-      - name: Build + Test (Debug)
+      - name: Run Tests
         shell: bash
         run: |
           set -euo pipefail
-          cmake --build build --config Debug -j 8
           ./build/ThresholdCrushTests_artefacts/ThresholdCrushTests
 
-      - name: Package installers (pkg/zip/dmg)
+      - name: Package installers (AU+VST3)
         shell: bash
         run: |
           set -euo pipefail
-          bash scripts/package_macos_vst3.sh "${{ steps.ver.outputs.version }}"
+          bash scripts/package_macos.sh "${{ steps.ver.outputs.version }}"
+
+      - name: Verify packaged files exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          ls -la dist
+          test -f "dist/ThresholdCrush-${{ steps.ver.outputs.version }}-macOS-AU+VST3.pkg"
+          test -f "dist/ThresholdCrush-${{ steps.ver.outputs.version }}-macOS-AU+VST3.dmg"
+          test -f "dist/ThresholdCrush-${{ steps.ver.outputs.version }}-macOS-AU+VST3.zip"
+
+      - name: auval (best-effort)
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/Library/Audio/Plug-Ins/Components"
+          src="build/ThresholdCrush_artefacts/AU/ThresholdCrush.component"
+          if [[ ! -d "$src" ]]; then src="build/ThresholdCrush_artefacts/Release/AU/ThresholdCrush.component"; fi
+          cp -R "$src" "$HOME/Library/Audio/Plug-Ins/Components/"
+          auval -v aufx ThCr JJay
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ThresholdCrush-macOS-VST3-${{ steps.ver.outputs.version }}
+          name: ThresholdCrush-macOS-AU+VST3-${{ steps.ver.outputs.version }}
           path: |
             dist/*.pkg
             dist/*.zip
@@ -107,7 +136,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
-          prerelease: ${{ inputs.prerelease }}
+          prerelease: ${{ (github.event_name == 'workflow_dispatch' && inputs.prerelease) || (github.event_name == 'release' && github.event.release.prerelease) || false }}
+          fail_on_unmatched_files: true
           files: |
             dist/*.pkg
             dist/*.zip

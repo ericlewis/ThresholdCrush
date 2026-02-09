@@ -19,10 +19,26 @@ bool ThresholdCrushAudioProcessor::producesMidi() const { return false; }
 bool ThresholdCrushAudioProcessor::isMidiEffect() const { return false; }
 double ThresholdCrushAudioProcessor::getTailLengthSeconds() const { return 0.0; }
 
-int ThresholdCrushAudioProcessor::getNumPrograms() { return 1; }
-int ThresholdCrushAudioProcessor::getCurrentProgram() { return 0; }
-void ThresholdCrushAudioProcessor::setCurrentProgram (int) {}
-const juce::String ThresholdCrushAudioProcessor::getProgramName (int) { return {}; }
+int ThresholdCrushAudioProcessor::getNumPrograms() { return (int) getFactoryPresets().size(); }
+int ThresholdCrushAudioProcessor::getCurrentProgram() { return currentProgram; }
+void ThresholdCrushAudioProcessor::setCurrentProgram (int index)
+{
+    const auto& presets = getFactoryPresets();
+    if (index < 0 || index >= (int) presets.size())
+        return;
+
+    currentProgram = index;
+    applyPreset (index);
+}
+
+const juce::String ThresholdCrushAudioProcessor::getProgramName (int index)
+{
+    const auto& presets = getFactoryPresets();
+    if (index < 0 || index >= (int) presets.size())
+        return {};
+    return presets[(size_t) index].name;
+}
+
 void ThresholdCrushAudioProcessor::changeProgramName (int, const juce::String&) {}
 
 void ThresholdCrushAudioProcessor::prepareToPlay (double sampleRate, int)
@@ -253,6 +269,107 @@ juce::AudioProcessorValueTreeState::ParameterLayout ThresholdCrushAudioProcessor
     ));
 
     return { params.begin(), params.end() };
+}
+
+const std::vector<ThresholdCrushAudioProcessor::Preset>& ThresholdCrushAudioProcessor::getFactoryPresets()
+{
+    static const std::vector<Preset> presets =
+    {
+        {
+            "Clean Glue",
+            {
+                { "threshold_db", -18.0f },
+                { "attack_ms", 15.0f },
+                { "release_ms", 150.0f },
+                { "crush_range_db", 30.0f },
+                { "min_bit_depth", 10.0f },
+                { "downsample_max", 1.0f },
+                { "clip_enabled", 0.0f },
+                { "clip_drive_db", 6.0f },
+                { "clip_style", 40.0f },
+                { "mix", 60.0f }
+            }
+        },
+        {
+            "Warm Crush",
+            {
+                { "threshold_db", -24.0f },
+                { "attack_ms", 8.0f },
+                { "release_ms", 200.0f },
+                { "crush_range_db", 24.0f },
+                { "min_bit_depth", 6.0f },
+                { "downsample_max", 2.0f },
+                { "clip_enabled", 1.0f },
+                { "clip_drive_db", 8.0f },
+                { "clip_style", 30.0f },
+                { "mix", 75.0f }
+            }
+        },
+        {
+            "Lo-Fi Steps",
+            {
+                { "threshold_db", -30.0f },
+                { "attack_ms", 3.0f },
+                { "release_ms", 250.0f },
+                { "crush_range_db", 18.0f },
+                { "min_bit_depth", 4.0f },
+                { "downsample_max", 8.0f },
+                { "clip_enabled", 0.0f },
+                { "clip_drive_db", 12.0f },
+                { "clip_style", 50.0f },
+                { "mix", 100.0f }
+            }
+        },
+        {
+            "Bit Smash",
+            {
+                { "threshold_db", -36.0f },
+                { "attack_ms", 1.0f },
+                { "release_ms", 120.0f },
+                { "crush_range_db", 12.0f },
+                { "min_bit_depth", 3.0f },
+                { "downsample_max", 6.0f },
+                { "clip_enabled", 1.0f },
+                { "clip_drive_db", 18.0f },
+                { "clip_style", 70.0f },
+                { "mix", 100.0f }
+            }
+        },
+        {
+            "Clipper Bite",
+            {
+                { "threshold_db", -20.0f },
+                { "attack_ms", 4.0f },
+                { "release_ms", 90.0f },
+                { "crush_range_db", 20.0f },
+                { "min_bit_depth", 8.0f },
+                { "downsample_max", 1.0f },
+                { "clip_enabled", 1.0f },
+                { "clip_drive_db", 20.0f },
+                { "clip_style", 85.0f },
+                { "mix", 65.0f }
+            }
+        }
+    };
+
+    return presets;
+}
+
+void ThresholdCrushAudioProcessor::applyPreset (int index)
+{
+    const auto& presets = getFactoryPresets();
+    if (index < 0 || index >= (int) presets.size())
+        return;
+
+    const auto& preset = presets[(size_t) index];
+    for (const auto& entry : preset.values)
+    {
+        if (auto* param = apvts.getParameter (entry.first))
+        {
+            const float normalized = param->convertTo0to1 (entry.second);
+            param->setValueNotifyingHost (normalized);
+        }
+    }
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

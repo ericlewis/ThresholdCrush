@@ -1,18 +1,25 @@
-# ThresholdCrush v0.2.0 (VST3) Install Guide
+# ThresholdCrush v0.2.0 (AU + VST3) Install Guide
 
-Recommended direction: use the **macOS system VST3 folder** so every VST3-capable DAW finds the same plugin.
+Recommended direction: install to the **macOS system plugin folders** so every DAW finds the same plugin.
 
 ## What You Get
 
-The build produces a single VST3 bundle:
-- `ThresholdCrush.vst3`
+The build produces:
+- `ThresholdCrush.vst3` (VST3)
+- `ThresholdCrush.component` (Audio Unit v2, for Logic Pro)
 
-This VST3 is what FL Studio, Ableton Live, REAPER, Bitwig, Cubase/Nuendo, Studio One, etc. will load on macOS.
+VST3 hosts (FL Studio, Ableton Live, REAPER, Bitwig, Cubase/Nuendo, Studio One, etc.) load the `.vst3`.
+Logic Pro loads the `.component`.
 
 ## Where The Built Plugin Is
 
 After a Release build:
-- `/Users/ericlewis/Developer/JayJay300/build/ThresholdCrush_artefacts/VST3/ThresholdCrush.vst3`
+- VST3:
+  - `/Users/ericlewis/Developer/JayJay300/build/ThresholdCrush_artefacts/VST3/ThresholdCrush.vst3`
+  - `/Users/ericlewis/Developer/JayJay300/build/ThresholdCrush_artefacts/Release/VST3/ThresholdCrush.vst3`
+- AU:
+  - `/Users/ericlewis/Developer/JayJay300/build/ThresholdCrush_artefacts/AU/ThresholdCrush.component`
+  - `/Users/ericlewis/Developer/JayJay300/build/ThresholdCrush_artefacts/Release/AU/ThresholdCrush.component`
 
 ## Install (macOS)
 
@@ -20,16 +27,26 @@ VST3 install locations:
 - System-wide: `/Library/Audio/Plug-Ins/VST3/`
 - Per-user: `~/Library/Audio/Plug-Ins/VST3/`
 
+AU install locations:
+- System-wide: `/Library/Audio/Plug-Ins/Components/`
+- Per-user: `~/Library/Audio/Plug-Ins/Components/`
+
 Manual install example:
 ```sh
-cp -R /Users/ericlewis/Developer/JayJay300/build/ThresholdCrush_artefacts/VST3/ThresholdCrush.vst3 \
+cp -R /Users/ericlewis/Developer/JayJay300/build/ThresholdCrush_artefacts/Release/VST3/ThresholdCrush.vst3 \
   ~/Library/Audio/Plug-Ins/VST3/
+
+cp -R /Users/ericlewis/Developer/JayJay300/build/ThresholdCrush_artefacts/Release/AU/ThresholdCrush.component \
+  ~/Library/Audio/Plug-Ins/Components/
 ```
 
 If the DAW refuses to load it due to quarantine/Gatekeeper:
 ```sh
 xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/ThresholdCrush.vst3
 codesign --force --deep --sign - ~/Library/Audio/Plug-Ins/VST3/ThresholdCrush.vst3
+
+xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/ThresholdCrush.component
+codesign --force --deep --sign - ~/Library/Audio/Plug-Ins/Components/ThresholdCrush.component
 ```
 
 ## Installers Already Generated (macOS)
@@ -38,31 +55,35 @@ These were created in:
 - `/Users/ericlewis/Developer/JayJay300/dist/`
 
 Files:
-- `ThresholdCrush-0.2.0-macOS-VST3.pkg`
-  - Installs to: `/Library/Audio/Plug-Ins/VST3/`
-- `ThresholdCrush-0.2.0-macOS-VST3.dmg`
-  - Drag `ThresholdCrush.vst3` into either VST3 folder above
-- `ThresholdCrush-0.2.0-macOS-VST3.zip`
-  - Contains `ThresholdCrush.vst3` for manual copy
+- `ThresholdCrush-0.2.0-macOS-AU+VST3.pkg`
+  - Installs to:
+    - `/Library/Audio/Plug-Ins/VST3/`
+    - `/Library/Audio/Plug-Ins/Components/`
+- `ThresholdCrush-0.2.0-macOS-AU+VST3.dmg`
+  - Drag `ThresholdCrush.vst3` and `ThresholdCrush.component` into the folders above
+- `ThresholdCrush-0.2.0-macOS-AU+VST3.zip`
+  - Contains both bundles for manual copy
 
 ## How To Generate The Installers (macOS)
 
-Build Release first:
+Package (creates `.pkg`, `.zip`, `.dmg` in `dist/`). The script will build Release if needed:
 ```sh
 cd /Users/ericlewis/Developer/JayJay300
-cmake -S . -B build
-cmake --build build --config Release -j 8
-```
-
-Then package (creates `.pkg`, `.zip`, `.dmg` in `dist/`):
-```sh
-cd /Users/ericlewis/Developer/JayJay300
-bash scripts/package_macos_vst3.sh
+bash scripts/package_macos.sh
 ```
 
 Notes:
 - The script auto-detects the version from `CMakeLists.txt` and will build Release if needed.
-- You can also override: `bash scripts/package_macos_vst3.sh 0.2.0`
+- You can also override: `bash scripts/package_macos.sh 0.2.0` (or `v0.2.0`)
+- GitHub Releases are built as **universal** (`arm64` + `x86_64`). To build universal locally:
+  - `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"`
+
+If you prefer to build manually first:
+```sh
+cd /Users/ericlewis/Developer/JayJay300
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j 8
+```
 
 ## DAW Rescan Instructions (macOS)
 
@@ -101,4 +122,4 @@ All of these DAWs will see the plugin once it’s in a VST3 folder above, but ea
 ## Windows / Logic Notes
 
 - **Windows**: not packaged here yet; would require a Windows build (VST3 goes to `C:\\Program Files\\Common Files\\VST3\\`).
-- **Logic Pro**: requires **AU**, and this project currently builds **VST3 only**.
+- **Logic Pro**: uses the AU (`.component`). Logic scans AUs on launch; if it doesn't appear, restart Logic (or rescan Audio Units).

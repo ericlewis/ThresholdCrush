@@ -1,6 +1,7 @@
-# ThresholdCrush (VST3)
+# ThresholdCrush (AU + VST3)
 
-A VST3 effect that stays clean under a threshold, then progressively bitcrushes the signal as it exceeds the threshold (like clipping, but with bit-depth reduction).
+A macOS audio effect that stays clean under a threshold, then progressively bitcrushes the signal as it exceeds the threshold (like clipping, but with bit-depth reduction).
+
 
 ## Signal Flow
 ```text
@@ -10,6 +11,22 @@ Input
   -> wet/dry mix
 Output
 ```
+
+```mermaid
+flowchart LR
+  A["Input L/R"] --> B["Stereo-linked detector\n(Threshold, Attack, Release)"]
+  B --> C["Overshoot (dB)"]
+  C --> D["Downsample Hold"]
+  D --> E["Bitcrush"]
+  E --> F{"Clip Enabled?"}
+  F -->|Yes| G["Clip (Drive, Style)"]
+  F -->|No| H["Bypass Clip"]
+  G --> I["Wet/Dry Mix"]
+  H --> I
+  I --> J["Output L/R"]
+```
+
+![Bitcrush detail](Resources/README/bitcrush-detail.png)
 
 ## Controls
 
@@ -24,20 +41,31 @@ Output
 - **Clip Style (%)**: 0% soft (tanh) → 100% hard (clamp).
 - **Mix (%)**: dry/wet blend for the crushed signal.
 
+## Presets
+
+Factory presets are available in your host:
+- Clean Glue
+- Warm Crush
+- Lo-Fi Steps
+- Bit Smash
+- Clipper Bite
+
 ## Build (macOS)
 
 ```sh
-cmake -S . -B build
-cmake --build build --config Release -j 8
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j 8
 ```
 
-VST3 output is under `build/ThresholdCrush_artefacts/VST3/`.
+Build artefacts:
+- VST3: `build/ThresholdCrush_artefacts/VST3/ThresholdCrush.vst3` (or `build/ThresholdCrush_artefacts/Release/VST3/ThresholdCrush.vst3`)
+- AU:   `build/ThresholdCrush_artefacts/AU/ThresholdCrush.component` (or `build/ThresholdCrush_artefacts/Release/AU/ThresholdCrush.component`)
 
 ## Run Tests
 
 ```sh
-cmake -S . -B build
-cmake --build build --config Debug -j 8
+cmake -S . -B build -DTHRESHOLDCRUSH_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug
+cmake --build build -j 8
 ./build/ThresholdCrushTests_artefacts/ThresholdCrushTests
 ```
 
@@ -48,7 +76,13 @@ See `INSTALL.md`.
 ## Package (macOS)
 
 ```sh
-bash scripts/package_macos_vst3.sh
+bash scripts/package_macos.sh
 ```
 
 The packager auto-detects the version from `CMakeLists.txt` and will build Release if needed.
+It also accepts an optional version argument (`0.2.0` or `v0.2.0`).
+
+VST3-only (deprecated, but still available):
+```sh
+bash scripts/package_macos_vst3.sh
+```

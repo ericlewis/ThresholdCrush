@@ -46,10 +46,20 @@ public:
     float getCrushMeter01() const noexcept { return crushMeter01.load (std::memory_order_relaxed); }
 
 private:
+    struct Preset
+    {
+        const char* name = nullptr;
+        std::initializer_list<std::pair<const char*, float>> values;
+    };
+
+    static const std::vector<Preset>& getFactoryPresets();
+    void applyPreset (int index);
+
     ThresholdCrushDSP dsp;
 
     std::atomic<float> inputMeter01 { 0.0f };
     std::atomic<float> crushMeter01 { 0.0f };
+    int currentProgram = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ThresholdCrushAudioProcessor)
 };

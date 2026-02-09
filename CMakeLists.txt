@@ -18,7 +18,8 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(juce)
 
 juce_add_plugin(ThresholdCrush
-  COMPANY_NAME "JayJay"
+  COMPANY_NAME "Eric Lewis"
+  BUNDLE_ID "com.ericlewis.thresholdcrush"
   IS_SYNTH FALSE
   NEEDS_MIDI_INPUT FALSE
   NEEDS_MIDI_OUTPUT FALSE
@@ -29,7 +30,7 @@ juce_add_plugin(ThresholdCrush
   PLUGIN_MANUFACTURER_CODE JJay
   PLUGIN_CODE ThCr
 
-  FORMATS VST3
+  FORMATS VST3 AU
   PRODUCT_NAME "ThresholdCrush"
 )
 

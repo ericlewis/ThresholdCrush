@@ -28,5 +28,9 @@ compile_commands.json
 # Plugin packaging outputs
 **/dist/
 
+# Generated outputs (scripts, one-off assets, etc.)
+output/
+tmp/
+
 # Misc
 *.log
