@@ -5,7 +5,7 @@ namespace
 void setupKnob (juce::Slider& s)
 {
     s.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
-    s.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 72, 22);
+    s.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 80, 22);
 }
 
 void setupIntKnob (juce::Slider& s)
@@ -27,25 +27,49 @@ ThresholdCrushAudioProcessorEditor::ThresholdCrushAudioProcessorEditor (Threshol
 {
     // Detector
     setupKnob (threshold);
+    threshold.setTextValueSuffix (" dB");
+    threshold.setTooltip ("Signal level above which crushing begins");
 
     setupKnob (attack);
+    attack.setTextValueSuffix (" ms");
+    attack.setTooltip ("How quickly the detector responds to rising levels");
+
     setupKnob (release);
+    release.setTextValueSuffix (" ms");
+    release.setTooltip ("How quickly the detector recovers after the signal drops");
 
     // Crush
     setupKnob (crushRange);
+    crushRange.setTextValueSuffix (" dB");
+    crushRange.setTooltip ("dB range over which crush intensity scales from zero to full");
+
     setupIntKnob (minBitDepth);
+    minBitDepth.setTextValueSuffix (" bits");
+    minBitDepth.setTooltip ("Lowest bit depth reached at full overshoot");
+
     setupIntKnob (downsampleMax);
+    downsampleMax.setTextValueSuffix ("x");
+    downsampleMax.setTooltip ("Maximum sample-hold factor at full overshoot");
 
     // Clip
     clipEnabled.setButtonText ("Clip");
     clipEnabled.setClickingTogglesState (true);
+    clipEnabled.setTooltip ("Enable or bypass the clipping stage");
+    clipEnabled.setMouseCursor (juce::MouseCursor::PointingHandCursor);
 
     setupKnob (clipDrive);
+    clipDrive.setTextValueSuffix (" dB");
+    clipDrive.setTooltip ("Gain applied before clipping (scales with overshoot)");
+
     setupKnob (clipStyle);
+    clipStyle.setTextValueSuffix ("%");
+    clipStyle.setTooltip ("Blend between soft (tanh) and hard (clamp) clipping");
 
     // Mix
     mix.setSliderStyle (juce::Slider::LinearHorizontal);
     mix.setTextBoxStyle (juce::Slider::TextBoxRight, false, 64, 22);
+    mix.setTextValueSuffix ("%");
+    mix.setTooltip ("Blend between dry (original) and wet (crushed) signal");
 
     setupLabel (thresholdLabel, "Threshold");
     setupLabel (attackLabel, "Attack");
@@ -103,7 +127,7 @@ ThresholdCrushAudioProcessorEditor::ThresholdCrushAudioProcessorEditor (Threshol
 
     startTimerHz (15);
 
-    setSize (560, 500);
+    setSize (560, 550);
 }
 
 void ThresholdCrushAudioProcessorEditor::paint (juce::Graphics& g)
@@ -126,6 +150,30 @@ void ThresholdCrushAudioProcessorEditor::paint (juce::Graphics& g)
 
     auto header = getLocalBounds().removeFromTop (28);
 
+    // Section headers: labelled separators above each row.
+    {
+        auto paintSection = [&] (juce::Rectangle<int> area, const juce::String& text)
+        {
+            if (area.isEmpty())
+                return;
+
+            g.setColour (juce::Colours::white.withAlpha (0.50f));
+            g.setFont (juce::Font (juce::FontOptions (11.0f, juce::Font::bold)));
+
+            auto textArea = area.reduced (4, 0);
+            g.drawFittedText (text, textArea, juce::Justification::centredLeft, 1);
+
+            const int textW = g.getCurrentFont().getStringWidth (text) + 12;
+            g.setColour (juce::Colours::white.withAlpha (0.10f));
+            g.drawLine ((float) (textArea.getX() + textW), (float) area.getCentreY(),
+                        (float) textArea.getRight(), (float) area.getCentreY(), 1.0f);
+        };
+
+        paintSection (detectorHeaderArea, "DETECTOR");
+        paintSection (crushHeaderArea, "CRUSH");
+        paintSection (clipHeaderArea, "CLIP");
+    }
+
     // Clip row state (visual only): indicate bypass/active without disabling Drive/Style knobs.
     if (! clipRowArea.isEmpty())
     {
@@ -143,7 +191,7 @@ void ThresholdCrushAudioProcessorEditor::paint (juce::Graphics& g)
 
         // Small badge near the toggle.
         auto b = clipEnabled.getBounds().toFloat();
-        auto badge = juce::Rectangle<float> (b.getX(), b.getY() - 18.0f, 74.0f, 14.0f);
+        auto badge = juce::Rectangle<float> (b.getX(), b.getY() - 16.0f, 74.0f, 14.0f);
 
         g.setColour (juce::Colours::black.withAlpha (0.35f));
         g.fillRoundedRectangle (badge, 7.0f);
@@ -165,7 +213,7 @@ void ThresholdCrushAudioProcessorEditor::paint (juce::Graphics& g)
         const float in01 = audioProcessor.getInputMeter01();
         const float crush01 = audioProcessor.getCrushMeter01();
 
-        auto meter = header.reduced (10, 6).removeFromRight (150);
+        auto meter = header.reduced (10, 6).removeFromRight (160);
         meter = meter.withHeight (16).withY (header.getY() + 6);
 
         const float pulse = 0.5f + 0.5f * std::sin ((float) juce::Time::getMillisecondCounterHiRes() * 0.006f);
@@ -176,8 +224,22 @@ void ThresholdCrushAudioProcessorEditor::paint (juce::Graphics& g)
         g.setColour (juce::Colours::white.withAlpha (0.18f));
         g.drawRoundedRectangle (meter.toFloat(), 6.0f, 1.0f);
 
-        auto inLane = meter.removeFromTop (8).reduced (6, 1);
-        auto crushLane = meter.reduced (6, 1);
+        auto inArea = meter.removeFromTop (8);
+        auto crushArea = meter;
+
+        // Lane labels
+        g.setColour (juce::Colours::white.withAlpha (0.50f));
+        g.setFont (juce::Font (juce::FontOptions (7.5f)));
+
+        auto inLabelRect = inArea.removeFromLeft (18);
+        auto crushLabelRect = crushArea.removeFromLeft (18);
+
+        g.drawFittedText ("IN", inLabelRect, juce::Justification::centred, 1);
+        g.drawFittedText ("CR", crushLabelRect, juce::Justification::centred, 1);
+
+        // Meter lanes
+        auto inLane = inArea.reduced (3, 1);
+        auto crushLane = crushArea.reduced (3, 1);
 
         auto fillLane = [&](juce::Rectangle<int> lane, float v, juce::Colour c)
         {
@@ -198,9 +260,9 @@ void ThresholdCrushAudioProcessorEditor::paint (juce::Graphics& g)
         fillLane (crushLane, crush01, juce::Colour::fromRGB (255, 120, 90));
     }
 
-    g.setColour (juce::Colours::white.withAlpha (0.65f));
-    g.setFont (juce::Font (juce::FontOptions (12.0f)));
-    g.drawFittedText ("Clean under threshold. Overshoot adds downsample + bitcrush (+ optional clip).",
+    g.setColour (juce::Colours::white.withAlpha (0.55f));
+    g.setFont (juce::Font (juce::FontOptions (11.0f)));
+    g.drawFittedText ("Clean below threshold | Crush intensity scales with overshoot",
                       getLocalBounds().removeFromBottom (20),
                       juce::Justification::centred,
                       1);
@@ -215,9 +277,14 @@ void ThresholdCrushAudioProcessorEditor::resized()
     const int mixRowHeight = 50;
     auto mixRow = area.removeFromBottom (mixRowHeight);
 
-    const int rowHeight = 120;
+    const int sectionHeight = 20;
+    const int rowHeight = (area.getHeight() - 3 * sectionHeight) / 3;
+
+    detectorHeaderArea = area.removeFromTop (sectionHeight);
     auto row1 = area.removeFromTop (rowHeight);
+    crushHeaderArea = area.removeFromTop (sectionHeight);
     auto row2 = area.removeFromTop (rowHeight);
+    clipHeaderArea = area.removeFromTop (sectionHeight);
     auto row3 = area.removeFromTop (rowHeight);
     clipRowArea = row3;
 
@@ -266,5 +333,13 @@ void ThresholdCrushAudioProcessorEditor::resized()
 
 void ThresholdCrushAudioProcessorEditor::timerCallback()
 {
+    // Dim clip Drive/Style controls when clip is bypassed.
+    const bool clipOn = (clipEnabledParam != nullptr && clipEnabledParam->load() > 0.5f);
+    const float targetAlpha = clipOn ? 1.0f : 0.4f;
+    clipDrive.setAlpha (targetAlpha);
+    clipStyle.setAlpha (targetAlpha);
+    clipDriveLabel.setAlpha (targetAlpha);
+    clipStyleLabel.setAlpha (targetAlpha);
+
     repaint();
 }

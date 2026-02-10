@@ -25,6 +25,9 @@ private:
 
     std::atomic<float>* clipEnabledParam = nullptr; // read-only on message thread for visuals
     juce::Rectangle<int> clipRowArea;
+    juce::Rectangle<int> detectorHeaderArea;
+    juce::Rectangle<int> crushHeaderArea;
+    juce::Rectangle<int> clipHeaderArea;
 
     juce::Slider threshold;
     juce::Slider attack;
