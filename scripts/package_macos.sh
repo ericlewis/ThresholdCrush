@@ -75,7 +75,7 @@ codesign --force --deep --sign - "$AU_DST/ThresholdCrush.component" || true
 VST3_STAGED="$VST3_DST/ThresholdCrush.vst3"
 AU_STAGED="$AU_DST/ThresholdCrush.component"
 
-PKG_ID="com.ericlewis.thresholdcrush.auv2vst3"
+PKG_ID="com.yellowballoon.thresholdcrush.auv2vst3"
 PKG_OUT="$DIST/ThresholdCrush-$PKG_VERSION-macOS-AU+VST3.pkg"
 
 pkgbuild \

@@ -44,7 +44,7 @@ jobs:
           ref="${GITHUB_REF}"
           short_sha="$(git rev-parse --short HEAD)"
 
-          base_version="$(perl -ne 'print $1 and exit if /set\\(THRESHOLDCRUSH_VERSION\\s+\"?([0-9]+\\.[0-9]+\\.[0-9]+)\"?/' CMakeLists.txt)"
+          base_version="$(perl -ne 'print $1 and exit if /set\(THRESHOLDCRUSH_VERSION\s+\"?([0-9]+\.[0-9]+\.[0-9]+)\"?/' CMakeLists.txt)"
           if [[ -z "${base_version}" ]]; then
             echo "Could not parse THRESHOLDCRUSH_VERSION from CMakeLists.txt" >&2
             exit 1

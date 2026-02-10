@@ -19,8 +19,8 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(juce)
 
 juce_add_plugin(ThresholdCrush
-  COMPANY_NAME "Eric Lewis"
-  BUNDLE_ID "com.ericlewis.thresholdcrush"
+  COMPANY_NAME "Yellowballoon"
+  BUNDLE_ID "com.yellowballoon.thresholdcrush"
   IS_SYNTH FALSE
   NEEDS_MIDI_INPUT FALSE
   NEEDS_MIDI_OUTPUT FALSE
@@ -28,7 +28,7 @@ juce_add_plugin(ThresholdCrush
   EDITOR_WANTS_KEYBOARD_FOCUS FALSE
   COPY_PLUGIN_AFTER_BUILD FALSE
 
-  PLUGIN_MANUFACTURER_CODE JJay
+  PLUGIN_MANUFACTURER_CODE YBll
   PLUGIN_CODE ThCr
 
   FORMATS VST3 AU
