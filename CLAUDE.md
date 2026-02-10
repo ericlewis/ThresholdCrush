@@ -28,9 +28,10 @@ cmake --build build -j 8
 bash scripts/package_macos.sh
 ```
 
-Test binary path varies between single-config (Ninja/Make) and multi-config (Xcode) generators. Check both:
-- `build/ThresholdCrushTests_artefacts/ThresholdCrushTests`
-- `build/ThresholdCrushTests_artefacts/Release/ThresholdCrushTests`
+Test binary path varies between single-config (Ninja/Make) and multi-config (Xcode) generators. Check all possible locations:
+- `build/ThresholdCrushTests_artefacts/ThresholdCrushTests` (single-config)
+- `build/ThresholdCrushTests_artefacts/Debug/ThresholdCrushTests` (multi-config, Debug)
+- `build/ThresholdCrushTests_artefacts/Release/ThresholdCrushTests` (multi-config, Release)
 
 ## Project Structure
 
