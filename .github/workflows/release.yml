@@ -148,7 +148,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ./build/ThresholdCrushTests_artefacts/ThresholdCrushTests
+          # Path differs between single-config (Ninja/Make) and multi-config (Xcode) generators.
+          test_bin=""
+          if [[ -x "./build/ThresholdCrushTests_artefacts/ThresholdCrushTests" ]]; then
+            test_bin="./build/ThresholdCrushTests_artefacts/ThresholdCrushTests"
+          elif [[ -x "./build/ThresholdCrushTests_artefacts/Release/ThresholdCrushTests" ]]; then
+            test_bin="./build/ThresholdCrushTests_artefacts/Release/ThresholdCrushTests"
+          else
+            test_bin="$(find ./build -type f -name ThresholdCrushTests -perm -111 2>/dev/null | head -n 1 || true)"
+          fi
+
+          if [[ -z "${test_bin}" || ! -x "${test_bin}" ]]; then
+            echo "Could not find ThresholdCrushTests binary under ./build" >&2
+            find ./build -maxdepth 3 -type f -name 'ThresholdCrushTests*' -print >&2 || true
+            exit 1
+          fi
+
+          echo "Running: ${test_bin}"
+          "${test_bin}"
 
       - name: Package installers (AU+VST3)
         shell: bash
